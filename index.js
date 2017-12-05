@@ -1,6 +1,23 @@
 var async = require('async');
 var plugins = require('./exports.js');
 var collector = require('./collect.js');
+var commandLineArgs = require('command-line-args');
+var csvWriter = require('csv-write-stream');
+var fs = require('fs');
+
+//define the command-line args we will support
+const optionDefinitions = [
+  { name: 'export', type: String }
+]
+//parse the command-line args - available in options
+const options = commandLineArgs(optionDefinitions)
+
+var exportCSV = false;
+if (options.export) {
+    if (options.export.toLowerCase() === 'csv') {
+        exportCSV = true;
+    }
+}
 
 var AWSConfig;
 
@@ -12,8 +29,7 @@ var AWSConfig;
 //     region: 'us-east-1'
 // };
 
-// OPTION 2: Import an AWS config file containing credentials
-// AWSConfig = require(__dirname + '/credentials.json');
+AWSConfig = require(__dirname + '/credentials.json');
 
 // OPTION 3: ENV configuration with AWS_ env vars
 if(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY){
@@ -57,6 +73,11 @@ collector(AWSConfig, {api_calls: apiCalls, skip_regions: skipRegions}, function(
     console.log('INFO: Metadata collection complete. Analyzing...');
     console.log('INFO: Analysis complete. Scan report to follow...\n');
 
+    if (exportCSV) {
+        var writer = csvWriter({headers: ["category", "title", "resource", "region", "statusWord", "message"]});
+        writer.pipe(fs.createWriteStream('results.csv'));
+    }
+
     async.forEachOfLimit(plugins, 10, function(plugin, key, callback){
         plugin.run(collection, settings, function(err, results){
             for (r in results) {
@@ -75,6 +96,12 @@ collector(AWSConfig, {api_calls: apiCalls, skip_regions: skipRegions}, function(
                             (results[r].resource || 'N/A') + '\t' +
                             (results[r].region || 'Global') + '\t\t' +
                             statusWord + '\t' + results[r].message);
+
+
+		//if the user asks us to export to csv lets do that
+		if (exportCSV) {
+		    writer.write([plugin.category, plugin.title, (results[r].resource || 'N/A'), (results[r].region || 'Global'), statusWord, results[r].message])
+		}
             }
 
             callback(err);
@@ -82,4 +109,9 @@ collector(AWSConfig, {api_calls: apiCalls, skip_regions: skipRegions}, function(
     }, function(err){
         if (err) return console.log(err);
     });
+
+    if (exportCSV) {
+        writer.end();
+        console.log('INFO: Results available at results.csv.');
+    }
 });

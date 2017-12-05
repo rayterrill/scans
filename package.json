@@ -22,8 +22,10 @@
   },
   "homepage": "https://cloudsploit.com",
   "dependencies": {
-    "async": "2.0.0-rc.3",
-    "aws-sdk": "^2.0.18"
+    "async": "^2.0.0-rc.3",
+    "aws-sdk": "^2.163.0",
+    "command-line-args": "^4.0.7",
+    "csv-write-stream": "^2.0.0",
+    "proxy-agent": "^2.1.0"
   }
 }
-

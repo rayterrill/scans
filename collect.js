@@ -21,6 +21,15 @@ var async = require('async');
 var helpers = require(__dirname + '/helpers');
 var collectors = require(__dirname + '/collectors');
 
+// ADDED PROXY CONFIGURATION
+if (process.env.http_proxy) {
+   console.log('INFO: Setting proxy to [' + process.env.http_proxy + '] from the environment variable http_proxy...');
+   var proxy = require('proxy-agent');
+   AWS.config.update({
+      httpOptions: { agent: proxy(process.env.http_proxy) }
+   });
+}
+
 var globalServices = [
 	'S3',
 	'IAM',
